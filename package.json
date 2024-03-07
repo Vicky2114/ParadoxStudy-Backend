@@ -2,10 +2,12 @@
   "name": "paradoxstudy-backend",
   "version": "1.0.0",
   "description": "a backend at paradoxstudy",
-  "type": "module",
+  "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "start": "nodemon index.js",
+    "prod": "node index.js"
   },
   "keywords": [
     "javascript",
