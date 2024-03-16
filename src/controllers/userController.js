@@ -1,6 +1,7 @@
 const User = require("../models/user.model");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { sendVerificationMail } = require("../utils/sendVerificationMail");
 
 async function userRegistration(req, res) {
   const { username, email, password, isVerified } = req.body;
@@ -20,18 +21,32 @@ async function userRegistration(req, res) {
 
     const salt = await bcrypt.genSalt(10);
     const hashPassword = await bcrypt.hash(password, salt);
+
     const newUser = new User({
       username: username,
       email: email,
       password: hashPassword,
+      isVerified: isVerified || false, // default to false if isVerified is not provided
     });
-    await newUser.save();
 
-    res
-      .status(201)
-      .json({ status: "success", message: "User registered successfully" });
+    const userData = await newUser.save();
+
+    await sendVerificationMail(username, email, userData._id); // Assuming sendVerificationMail is defined elsewhere
+
+    const token = jwt.sign(
+      { userId: userData._id },
+      process.env.JWT_SECRET, // Removed backticks to correctly access environment variable
+      {
+        expiresIn: "10h",
+      }
+    );
+
+    res.status(201).json({
+      status: "success",
+      message: "Verification send in email",
+      token: token,
+    });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ status: "failed", message: "Unable to register" });
   }
 }
@@ -59,8 +74,13 @@ async function userLogin(req, res) {
         .json({ status: "failed", message: "Invalid email or password" });
     }
 
+    if (!user.isVerified) {
+      return res
+        .status(401)
+        .json({ status: "failed", message: "First verify email" });
+    }
     // Generate JWT token
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ userId: user._id }, `process.env.JWT_SECRET`, {
       expiresIn: "10h",
     });
 
@@ -76,4 +96,21 @@ async function userLogin(req, res) {
   }
 }
 
-module.exports = { userRegistration, userLogin };
+async function verifyMail(req, res) {
+  try {
+    const updateInfo = await User.updateOne(
+      { _id: req.params.id },
+      { $set: { isVerified: true } }
+    );
+
+    console.log(updateInfo);
+    res.status(201).json({
+      status: "success",
+      message: "Verification send in email",
+      updateInfo: updateInfo,
+    });
+  } catch (error) {
+    console.log(error.message);
+  }
+}
+module.exports = { userRegistration, userLogin, verifyMail };

@@ -4,8 +4,12 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const authController = require("./src/controllers/auth_controller");
+const path = require('path');
 dotenv.config();
 app.use("/public", express.static(__dirname + "/public"));
+
+app.engine('html', require('ejs').renderFile);
+app.set('view engine', 'html');
 
 app.use(express.json());
 app.use(cors());
