@@ -21,29 +21,32 @@ async function userRegistration(req, res) {
 
     const salt = await bcrypt.genSalt(10);
     const hashPassword = await bcrypt.hash(password, salt);
+
     const newUser = new User({
       username: username,
       email: email,
       password: hashPassword,
-      isVerified: isVerified
+      isVerified: isVerified || false, // default to false if isVerified is not provided
     });
+
     const userData = await newUser.save();
 
-    const savedUser = await User.findOne({email : email});
-    
-    sendVerificationMail(req.body.username, req.body.email, userData._id)
-    const token = jwt.sign({ userId: savedUser._id }, `process.env.JWT_SECRET`, {
-      expiresIn: "10h",
-    });
+    await sendVerificationMail(username, email, userData._id); // Assuming sendVerificationMail is defined elsewhere
 
-    if(savedUser.isVerified){
-      res
-      .status(201)
-      .json({ status: "success", message: "User registered successfully", token: token });  
-    }
-    
+    const token = jwt.sign(
+      { userId: userData._id },
+      process.env.JWT_SECRET, // Removed backticks to correctly access environment variable
+      {
+        expiresIn: "10h",
+      }
+    );
+
+    res.status(201).json({
+      status: "success",
+      message: "Verification send in email",
+      token: token,
+    });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ status: "failed", message: "Unable to register" });
   }
 }
@@ -70,33 +73,42 @@ async function userLogin(req, res) {
         .status(401)
         .json({ status: "failed", message: "Invalid email or password" });
     }
-      // Generate JWT token
-      const token = jwt.sign({ userId: user._id }, `process.env.JWT_SECRET`, {
-        expiresIn: "10h",
-      });
 
-      res.status(200).json({
-        status: "success",
-        message: "Login Successfully",
-        token: token,
-        user: user,
-      });
+    if (!user.isVerified) {
+      return res
+        .status(401)
+        .json({ status: "failed", message: "First verify email" });
     }
-     
-   catch (error) {
+    // Generate JWT token
+    const token = jwt.sign({ userId: user._id }, `process.env.JWT_SECRET`, {
+      expiresIn: "10h",
+    });
+
+    res.status(200).json({
+      status: "success",
+      message: "Login Successfully",
+      token: token,
+      user: user,
+    });
+  } catch (error) {
     console.error(error);
     res.status(500).json({ status: "failed", message: "Unable to login" });
   }
-
 }
 
-async function verifyMail(req, res){
+async function verifyMail(req, res) {
   try {
-    const updateInfo = await User.updateOne({_id:req.query.id}, { $set: { isVerified: true}});
-    
-    console.log(updateInfo);
-    res.render("views/email-verified")
+    const updateInfo = await User.updateOne(
+      { _id: req.params.id },
+      { $set: { isVerified: true } }
+    );
 
+    console.log(updateInfo);
+    res.status(201).json({
+      status: "success",
+      message: "Verification send in email",
+      updateInfo: updateInfo,
+    });
   } catch (error) {
     console.log(error.message);
   }
