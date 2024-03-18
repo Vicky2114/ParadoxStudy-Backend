@@ -35,7 +35,7 @@ const sendVerificationMail = (name, email, id) => {
           <div class="container">
             <h2>Hello ${name},</h2>
             <p>Welcome to our platform! Please click the following link to verify your email:</p>
-            <p><a href="http://localhost:${process.env.PORT}/api/user/accept/${id}">Verify Email</a></p>
+            <p><a href="https://paradoxstudy-backend.cyclic.app/api/user/accept/${id}">Verify Email</a></p>
             <p>If you didn't sign up for our platform, you can safely ignore this email.</p>
             <p>Thank you!</p>
           </div>
