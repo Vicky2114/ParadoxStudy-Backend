@@ -1,6 +1,7 @@
 const transporter = require("./createMailTransporter.js");
 
 const sendVerificationMail = (name, email, id) => {
+  console.log("hello")
   const mailOptions = {
     from: process.env.EMAIL_FROM,
     to: email,
@@ -45,6 +46,7 @@ const sendVerificationMail = (name, email, id) => {
 
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
+      
       console.error("Error sending verification email:", error);
     } else {
       console.log("Verification email sent");
