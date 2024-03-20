@@ -8,8 +8,6 @@ const path = require('path');
 dotenv.config();
 app.use("/public", express.static(__dirname + "/public"));
 
-app.engine('html', require('ejs').renderFile);
-app.set('view engine', 'html');
 
 app.use(express.json());
 app.use(cors());
