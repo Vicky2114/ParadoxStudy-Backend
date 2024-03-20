@@ -26,12 +26,13 @@ async function userRegistration(req, res) {
       username: username,
       email: email,
       password: hashPassword,
-      isVerified: isVerified || true, // default to false if isVerified is not provided
+      // isVerified: true, // default to false if isVerified is not provided
+      isVerified: isVerified || false, // default to false if isVerified is not provided
     });
 
     const userData = await newUser.save();
 
-    // await sendVerificationMail(username, email, userData._id); // Assuming sendVerificationMail is defined elsewhere
+    await sendVerificationMail(username, email, userData._id); // Assuming sendVerificationMail is defined elsewhere
 
     const token = jwt.sign(
       { userId: userData._id },
@@ -47,7 +48,7 @@ async function userRegistration(req, res) {
       token: token,
     });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status(500).json({ status: "failed", message: "Unable to register" });
   }
 }
