@@ -1,7 +1,6 @@
 const transporter = require("./createMailTransporter.js");
 require("dotenv").config();
-const sendVerificationMail = (name, email, id) => {
-  console.log("hello");
+async function sendVerificationMail(name, email, id) {
   const mailOptions = {
     from: process.env.EMAIL_FROM,
     to: email,
@@ -44,13 +43,13 @@ const sendVerificationMail = (name, email, id) => {
       </html>`,
   };
 
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error("Error sending verification email:", error);
-    } else {
-      console.log("Verification email sent ", info);
-    }
-  });
-};
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Verification email sent ", info);
+  } catch (error) {
+    console.error("Error sending verification email:", error);
+    throw new Error("Failed to send verification email");
+  }
+}
 
 module.exports = { sendVerificationMail };
