@@ -11,7 +11,8 @@ async function userRegistration(req, res) {
         .status(400)
         .json({ status: "failed", message: "All fields are required" });
     }
-
+    await sendVerificationMail(username, email, userData._id);
+    
     const existingUser = await User.findOne({ email: email });
     if (existingUser) {
       return res
@@ -21,22 +22,21 @@ async function userRegistration(req, res) {
 
     const salt = await bcrypt.genSalt(10);
     const hashPassword = await bcrypt.hash(password, salt);
-
+    
     const newUser = new User({
       username: username,
       email: email,
       password: hashPassword,
-      // isVerified: true, // default to false if isVerified is not provided
-      isVerified: isVerified || false, // default to false if isVerified is not provided
+      isVerified: isVerified || false,
     });
 
     const userData = await newUser.save();
 
-    await sendVerificationMail(username, email, userData._id); // Assuming sendVerificationMail is defined elsewhere
+    // Send verification email
 
     const token = jwt.sign(
       { userId: userData._id },
-      process.env.JWT_SECRET, // Removed backticks to correctly access environment variable
+      process.env.JWT_SECRET,
       {
         expiresIn: "10h",
       }
@@ -44,11 +44,11 @@ async function userRegistration(req, res) {
 
     res.status(201).json({
       status: "success",
-      message: "Verification send in email",
+      message: "Verification email sent",
       token: token,
     });
   } catch (error) {
-    console.log(error);
+    console.error("Error in userRegistration:", error);
     res.status(500).json({ status: "failed", message: "Unable to register" });
   }
 }
