@@ -4,10 +4,9 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const authController = require("./src/controllers/auth_controller");
-const path = require('path');
+const path = require("path");
 dotenv.config();
 app.use("/public", express.static(__dirname + "/public"));
-
 
 app.use(express.json());
 app.use(cors());
