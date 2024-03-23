@@ -1,7 +1,7 @@
 const transporter = require("./createMailTransporter.js");
 require("dotenv").config();
 
-async function sendResetPasswordMail(name, email, id){
+async function sendResetPasswordMail(name, email, link){
     const mailOptions = {
         from: process.env.EMAIL_FROM,
         to: email,
@@ -36,7 +36,7 @@ async function sendResetPasswordMail(name, email, id){
               <div class="container">
                 <h2>Hello ${name},</h2>
                 <p>Welcome to our platform! Please click the following link to reset your Password:</p>
-                <p><a href="http://localhost:3000/api/user/reset/${user._id}/${token}">Reset Password</a></p>
+                <p><a href="${link}">Reset Password</a></p>
                 <p>Thank you!</p>
               </div>
             </body>
@@ -51,3 +51,5 @@ async function sendResetPasswordMail(name, email, id){
         throw new Error("Failed to send reset password email");
       }
 }
+
+module.exports = { sendResetPasswordMail };
