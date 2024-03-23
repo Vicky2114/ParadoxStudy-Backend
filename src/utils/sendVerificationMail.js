@@ -52,7 +52,6 @@ async function sendVerificationMail(name, email, id) {
   }
 }
 
-
 async function sendResetPasswordMail(name, email, link) {
   const mailOptions = {
     from: process.env.EMAIL_FROM,
@@ -104,4 +103,4 @@ async function sendResetPasswordMail(name, email, link) {
   }
 }
 
-module.exports = { sendVerificationMail ,sendResetPasswordMail};
+module.exports = { sendVerificationMail, sendResetPasswordMail };

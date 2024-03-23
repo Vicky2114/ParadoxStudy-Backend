@@ -6,10 +6,16 @@ const dotenv = require("dotenv");
 const authController = require("./src/controllers/auth_controller");
 const path = require("path");
 dotenv.config();
+app.use(
+  cors({
+    origin: ["https://paradoxstudy.me/", "http://localhost:3000"],
+    credentials: true,
+    exposedHeaders: ["set-cookie"],
+  })
+);
 app.use("/public", express.static(__dirname + "/public"));
 
 app.use(express.json());
-app.use(cors());
 
 app.get("/", authController.start);
 app.use("/api", require("./src/routes"));
