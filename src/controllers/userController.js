@@ -15,7 +15,6 @@ async function userRegistration(req, res) {
         .json({ status: "failed", message: "All fields are required" });
     }
 
-
     const existingUser = await User.findOne({ email: email });
     if (existingUser) {
       return res
@@ -135,7 +134,7 @@ async function forgotPassword(req, res) {
     const link = `http://paradoxstudy.me/pages/resetpassword/${user._id}/${token}`;
     console.log(link);
 
-    sendResetPasswordMail(user.username, email, link); // Assuming sendResetPasswordMail is defined elsewhere
+    await sendResetPasswordMail(user.username, email, link); // Assuming sendResetPasswordMail is defined elsewhere
     res.status(200).json({
       status: "success",
       message: "Password Reset Email Sent... Please Check Your Email",
