@@ -1,10 +1,15 @@
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 
 const verifyToken = (req, res, next) => {
-  const token = req.headers.authorization;
-  if (!token) {
-    return res.status(401).json({ status: "failed", message: "Unauthorized: Missing token" });
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res
+      .status(401)
+      .json({ status: "failed", message: "Unauthorized: Missing token" });
   }
+
+  const token = authHeader.split(" ")[1]; // Remove "Bearer" prefix
+  console.log(token);
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -12,7 +17,9 @@ const verifyToken = (req, res, next) => {
     next();
   } catch (error) {
     console.error(error);
-    return res.status(403).json({ status: "failed", message: "Unauthorized: Invalid token" });
+    return res
+      .status(403)
+      .json({ status: "failed", message: "Unauthorized: Invalid token" });
   }
 };
 
