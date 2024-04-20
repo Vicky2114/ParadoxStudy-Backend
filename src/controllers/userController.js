@@ -80,7 +80,7 @@ async function userLogin(req, res) {
         .json({ status: "failed", message: "First verify email" });
     }
     // Generate JWT token
-    const token = jwt.sign({ userId: user._id }, `process.env.JWT_SECRET`, {
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "10h",
     });
 
@@ -187,10 +187,51 @@ async function userPasswordReset(req, res) {
   }
 }
 
+async function updateProfile(req, res) {
+  try {
+    await User.uploadFiles(req, res, async (err) => {
+      const userId = req.userId; // Assuming you're using authentication middleware and the user ID is stored in req.user._id
+      console.log(userId);
+
+      const { avatar, email, password, ...rest } = req.body;
+      let updatedData = { ...rest };
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Error uploading files" });
+      }
+
+      const imageFiles = req.files["avatar"];
+      console.log("Image Files:", imageFiles);
+
+      if (!imageFiles) {
+        return res.status(400).json({ error: "No files uploaded" });
+      }
+      let data = {
+        ...updatedData,
+        avatar: imageFiles ? imageFiles[0].path : undefined,
+      };
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { $set: data },
+        { new: true }
+      );
+      console.log(user);
+      // const updatedUser = await User.findById(userId); // Fetch updated user data
+      res.status(200).json({ status: "success", data: user });
+    });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ status: "failed", message: "Unable to process request" });
+  }
+}
+
 module.exports = {
   userRegistration,
   userLogin,
   verifyMail,
   forgotPassword,
   userPasswordReset,
+  updateProfile,
 };
