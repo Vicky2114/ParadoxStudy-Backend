@@ -103,14 +103,14 @@ async function verifyMail(req, res) {
       { $set: { isVerified: true } }
     );
 
-    console.log(updateInfo);
+  
     res.status(201).json({
       status: "success",
       message: "Verification send in email",
       updateInfo: updateInfo,
     });
   } catch (error) {
-    console.log(error.message);
+    console.error(error.message);
   }
 }
 async function forgotPassword(req, res) {
@@ -132,7 +132,6 @@ async function forgotPassword(req, res) {
     const secret = user._id + process.env.jwtSecret;
     const token = jwt.sign({ userId: user._id }, secret, { expiresIn: "15m" });
     const link = `http://paradoxstudy.me/pages/resetpassword/${user._id}/${token}`;
-    console.log(link);
 
     await sendResetPasswordMail(user.username, email, link); // Assuming sendResetPasswordMail is defined elsewhere
     res.status(200).json({
@@ -190,34 +189,61 @@ async function userPasswordReset(req, res) {
 async function updateProfile(req, res) {
   try {
     await User.uploadFiles(req, res, async (err) => {
-      const userId = req.userId; // Assuming you're using authentication middleware and the user ID is stored in req.user._id
-      console.log(userId);
-
-      const { avatar, email, password, ...rest } = req.body;
-      let updatedData = { ...rest };
       if (err) {
         console.error(err);
         return res.status(500).json({ error: "Error uploading files" });
       }
 
-      const imageFiles = req.files["avatar"];
-      console.log("Image Files:", imageFiles);
+      const userId = req.userId; // Assuming you're using authentication middleware and the user ID is stored in req.user._id
 
-      if (!imageFiles) {
-        return res.status(400).json({ error: "No files uploaded" });
+      const { avatar, ...rest } = req.body; // Exclude avatar from the body
+      let updatedData = { ...rest };
+
+      let avatarPath;
+      if (req.files) {
+        // If new avatar is provided, use the new avatar
+        avatarPath = req.files["avatar"][0].path; // Corrected to access req.files["avatar"][0].path
+      } else if (avatar) {
+        // If avatar field is provided in the request body, use it as the new avatar
+        avatarPath = avatar;
       }
+
       let data = {
         ...updatedData,
-        avatar: imageFiles ? imageFiles[0].path : undefined,
+        avatar: avatarPath ? avatarPath : undefined,
       };
+
       const user = await User.findByIdAndUpdate(
         userId,
         { $set: data },
         { new: true }
       );
-      console.log(user);
+    
       // const updatedUser = await User.findById(userId); // Fetch updated user data
       res.status(200).json({ status: "success", data: user });
+    });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ status: "failed", message: "Unable to process request" });
+  }
+}
+
+
+async function userById(req, res) {
+  try {
+    const userId = req.userId;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ status: "failed", message: "user not present" });
+    }
+
+    res.status(200).json({
+      status: "success",
+      data: user,
     });
   } catch (error) {
     console.error(error);
@@ -234,4 +260,5 @@ module.exports = {
   forgotPassword,
   userPasswordReset,
   updateProfile,
+  userById,
 };

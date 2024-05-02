@@ -8,7 +8,7 @@ const path = require("path");
 dotenv.config();
 app.use(
   cors({
-    origin: ["https://paradoxstudy.me", "http://localhost:3000"],
+    origin: ["https://paradoxstudy.me", "http://localhost:3000","http://localhost:8000"],
     credentials: true,
     exposedHeaders: ["set-cookie"],
   })

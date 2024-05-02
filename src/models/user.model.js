@@ -53,6 +53,12 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    gender: {
+      type: String,
+    },
+    branch:{
+      type:String,
+    }
   },
   {
     timestamps: true,
