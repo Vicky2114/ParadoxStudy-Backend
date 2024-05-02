@@ -9,5 +9,6 @@ router.post('/send-reset-password-email', UserController.forgotPassword)
 // router.post('/send-reset-password/:id/:token', UserController.forgotPassword)
 router.post('/reset-password/:id/:token', UserController.userPasswordReset)
 router.patch('/updateProfile',authMiddleware ,UserController.updateProfile)
+router.get('/userById',authMiddleware ,UserController.userById)
 
 module.exports = router;
