@@ -103,7 +103,6 @@ async function verifyMail(req, res) {
       { $set: { isVerified: true } }
     );
 
-  
     res.status(201).json({
       status: "success",
       message: "Verification send in email",
@@ -218,7 +217,7 @@ async function updateProfile(req, res) {
         { $set: data },
         { new: true }
       );
-    
+
       // const updatedUser = await User.findById(userId); // Fetch updated user data
       res.status(200).json({ status: "success", data: user });
     });
@@ -229,7 +228,6 @@ async function updateProfile(req, res) {
       .json({ status: "failed", message: "Unable to process request" });
   }
 }
-
 
 async function userById(req, res) {
   try {
