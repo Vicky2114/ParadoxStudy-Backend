@@ -10,5 +10,6 @@ router.post('/send-reset-password-email', UserController.forgotPassword)
 router.post('/reset-password/:id/:token', UserController.userPasswordReset)
 router.patch('/updateProfile',authMiddleware ,UserController.updateProfile)
 router.get('/userById',authMiddleware ,UserController.userById)
+router.get('/wakeUp' ,UserController.getChatMaruti)
 
 module.exports = router;
