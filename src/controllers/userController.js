@@ -1,7 +1,9 @@
 const User = require("../models/user.model");
 const bcrypt = require("bcrypt");
 const axios = require("axios");
+
 const jwt = require("jsonwebtoken");
+const formidable = require("formidable");
 const {
   sendVerificationMail,
   sendResetPasswordMail,
@@ -10,7 +12,15 @@ const {
 async function getChatMaruti(req, res) {
   try {
     // Make an Axios request here
-    const response = await axios.get("http://20.42.96.57:8000");
+    // Make an Axios request here
+    const { chatId, selected_book } = req.body;
+    const formData = new FormData();
+    formData.append("chatId", chatId);
+    formData.append("selected_book", selected_book);
+    const response = await axios.post(
+      "http://20.42.96.57:8000/getChats",
+      formData
+    );
 
     // Extract the data from the response
     const responseData = response.data;
@@ -26,6 +36,50 @@ async function getChatMaruti(req, res) {
   }
 }
 
+const getPdfData = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    console.log(userId);
+
+    const formData = new FormData();
+    formData.append("userId", userId);
+    const response = await axios.post(
+      "http://20.42.96.57:8000/getAllData",
+      formData
+      // { headers: formData.getHeaders() } // Include multipart/form-data headers
+    );
+
+    res.json(response.data); // Assuming res.data contains the response from the other server
+  } catch (error) {
+    console.error("Error in getChatMaruti:", error);
+    res
+      .status(500)
+      .json({ status: "failed", message: "Unable to fetch chat data" });
+  }
+};
+
+const askChatBot = async (req, res) => {
+  try {
+    const { chatId, question, selected_book } = req.body;
+    // console.log(userId);
+
+    const formData = new FormData();
+    formData.append("chatId", chatId);
+    formData.append("question", question);
+    formData.append("selected_book", selected_book);
+    const response = await axios.post(
+      "http://20.42.96.57:8000/ask",
+      formData
+      // { headers: formData.getHeaders() } // Include multipart/form-data headers
+    );
+    res.json(response.data); // Assuming res.data contains the response from the other server
+  } catch (error) {
+    console.error("Error in getChatMaruti:", error);
+    res
+      .status(500)
+      .json({ status: "failed", message: "Unable to fetch chat data" });
+  }
+};
 async function userRegistration(req, res) {
   const { username, email, password, isVerified } = req.body;
   try {
@@ -279,5 +333,7 @@ module.exports = {
   userPasswordReset,
   updateProfile,
   userById,
-  getChatMaruti
+  getChatMaruti,
+  getPdfData,
+  askChatBot,
 };
