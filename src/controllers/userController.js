@@ -1,10 +1,30 @@
 const User = require("../models/user.model");
 const bcrypt = require("bcrypt");
+const axios = require("axios");
 const jwt = require("jsonwebtoken");
 const {
   sendVerificationMail,
   sendResetPasswordMail,
 } = require("../utils/sendVerificationMail");
+
+async function getChatMaruti(req, res) {
+  try {
+    // Make an Axios request here
+    const response = await axios.get("http://20.42.96.57:8000");
+
+    // Extract the data from the response
+    const responseData = response.data;
+    console.log("Response data:", responseData);
+
+    // Send only the data in the response
+    res.status(200).json(responseData);
+  } catch (error) {
+    console.error("Error in getChatMaruti:", error);
+    res
+      .status(500)
+      .json({ status: "failed", message: "Unable to fetch chat data" });
+  }
+}
 
 async function userRegistration(req, res) {
   const { username, email, password, isVerified } = req.body;
@@ -259,4 +279,5 @@ module.exports = {
   userPasswordReset,
   updateProfile,
   userById,
+  getChatMaruti
 };
