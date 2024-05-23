@@ -1,9 +1,12 @@
 const User = require("../models/user.model");
 const bcrypt = require("bcrypt");
 const axios = require("axios");
-
+const { Readable } = require("stream");
 const jwt = require("jsonwebtoken");
 const formidable = require("formidable");
+const fs = require("fs");
+const Books = require("../models/books.model");
+
 const {
   sendVerificationMail,
   sendResetPasswordMail,
@@ -80,6 +83,50 @@ const askChatBot = async (req, res) => {
       .json({ status: "failed", message: "Unable to fetch chat data" });
   }
 };
+
+const uploadBooks = async (req, res) => {
+  try {
+    const { chatId, userId, name, sem } = req.body;
+    const formData = new FormData();
+    formData.append("chatId", chatId);
+    formData.append("userId", userId);
+
+    // Convert file buffer to Blob
+    const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
+
+    // Append Blob to FormData
+    formData.append("pdfFile", blob, req.file.originalname);
+
+    // Make further API call using Axios
+    const axiosResponse = await axios.post(
+      "http://172.190.120.7:8000/upload",
+      formData
+      // { headers: formData.getHeaders() }
+    );
+    const bookSchema = await Books.create({
+      userId: userId,
+      name: name,
+      filename: axiosResponse.data.pdf_name,
+      uri: axiosResponse.data.file_url,
+      sem: sem,
+    });
+
+    await bookSchema.save();
+    // Assuming res.data contains the response from the other server
+    res.send({
+      message: `Book ${name} is succesfully uploaded`,
+      axiosResponseData: bookSchema,
+    });
+  } catch (error) {
+    console.error("Error in uploadBooks:", error);
+    res.status(500).json({
+      status: "failed",
+      message: "Unable to upload books",
+      error: error,
+    });
+  }
+};
+
 async function userRegistration(req, res) {
   const { username, email, password, isVerified } = req.body;
   try {
@@ -336,4 +383,5 @@ module.exports = {
   getChatMaruti,
   getPdfData,
   askChatBot,
+  uploadBooks,
 };
