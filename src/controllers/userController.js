@@ -18,7 +18,7 @@ async function getChatMaruti(req, res) {
     formData.append("chatId", chatId);
     formData.append("selected_book", selected_book);
     const response = await axios.post(
-      "http://20.42.96.57:8000/getChats",
+      "http://172.190.120.7:8000/getChats",
       formData
     );
 
@@ -44,7 +44,7 @@ const getPdfData = async (req, res) => {
     const formData = new FormData();
     formData.append("userId", userId);
     const response = await axios.post(
-      "http://20.42.96.57:8000/getAllData",
+      "http://172.190.120.7:8000/getAllData",
       formData
       // { headers: formData.getHeaders() } // Include multipart/form-data headers
     );
@@ -68,7 +68,7 @@ const askChatBot = async (req, res) => {
     formData.append("question", question);
     formData.append("selected_book", selected_book);
     const response = await axios.post(
-      "http://20.42.96.57:8000/ask",
+      "http://172.190.120.7:8000/ask",
       formData
       // { headers: formData.getHeaders() } // Include multipart/form-data headers
     );
