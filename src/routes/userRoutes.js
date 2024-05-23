@@ -16,5 +16,6 @@ router.get("/userById", authMiddleware, UserController.userById);
 router.post("/getChats", upload.single("pdf"), UserController.getChatMaruti);
 router.post("/getAllData", upload.single("pdf"), UserController.getPdfData);
 router.post("/ask", upload.single("pdf"), UserController.askChatBot);
+router.post("/upload", upload.single("pdf"), UserController.uploadBooks);
 
 module.exports = router;
