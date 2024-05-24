@@ -1,11 +1,85 @@
 const User = require("../models/user.model");
 const bcrypt = require("bcrypt");
+const axios = require("axios");
+
 const jwt = require("jsonwebtoken");
+const formidable = require("formidable");
 const {
   sendVerificationMail,
   sendResetPasswordMail,
 } = require("../utils/sendVerificationMail");
 
+async function getChatMaruti(req, res) {
+  try {
+    // Make an Axios request here
+    // Make an Axios request here
+    const { chatId, selected_book } = req.body;
+    const formData = new FormData();
+    formData.append("chatId", chatId);
+    formData.append("selected_book", selected_book);
+    const response = await axios.post(
+      "http://20.42.96.57:8000/getChats",
+      formData
+    );
+
+    // Extract the data from the response
+    const responseData = response.data;
+    console.log("Response data:", responseData);
+
+    // Send only the data in the response
+    res.status(200).json(responseData);
+  } catch (error) {
+    console.error("Error in getChatMaruti:", error);
+    res
+      .status(500)
+      .json({ status: "failed", message: "Unable to fetch chat data" });
+  }
+}
+
+const getPdfData = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    console.log(userId);
+
+    const formData = new FormData();
+    formData.append("userId", userId);
+    const response = await axios.post(
+      "http://20.42.96.57:8000/getAllData",
+      formData
+      // { headers: formData.getHeaders() } // Include multipart/form-data headers
+    );
+
+    res.json(response.data); // Assuming res.data contains the response from the other server
+  } catch (error) {
+    console.error("Error in getChatMaruti:", error);
+    res
+      .status(500)
+      .json({ status: "failed", message: "Unable to fetch chat data" });
+  }
+};
+
+const askChatBot = async (req, res) => {
+  try {
+    const { chatId, question, selected_book } = req.body;
+    // console.log(userId);
+
+    const formData = new FormData();
+    formData.append("chatId", chatId);
+    formData.append("question", question);
+    formData.append("selected_book", selected_book);
+    const response = await axios.post(
+      "http://20.42.96.57:8000/ask",
+      formData
+      // { headers: formData.getHeaders() } // Include multipart/form-data headers
+    );
+    res.json(response.data); // Assuming res.data contains the response from the other server
+  } catch (error) {
+    console.error("Error in getChatMaruti:", error);
+    res
+      .status(500)
+      .json({ status: "failed", message: "Unable to fetch chat data" });
+  }
+};
 async function userRegistration(req, res) {
   const { username, email, password, isVerified } = req.body;
   try {
@@ -14,7 +88,6 @@ async function userRegistration(req, res) {
         .status(400)
         .json({ status: "failed", message: "All fields are required" });
     }
-
 
     const existingUser = await User.findOne({ email: email });
     if (existingUser) {
@@ -81,7 +154,7 @@ async function userLogin(req, res) {
         .json({ status: "failed", message: "First verify email" });
     }
     // Generate JWT token
-    const token = jwt.sign({ userId: user._id }, `process.env.JWT_SECRET`, {
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "10h",
     });
 
@@ -104,14 +177,13 @@ async function verifyMail(req, res) {
       { $set: { isVerified: true } }
     );
 
-    console.log(updateInfo);
     res.status(201).json({
       status: "success",
       message: "Verification send in email",
       updateInfo: updateInfo,
     });
   } catch (error) {
-    console.log(error.message);
+    console.error(error.message);
   }
 }
 async function forgotPassword(req, res) {
@@ -133,9 +205,8 @@ async function forgotPassword(req, res) {
     const secret = user._id + process.env.jwtSecret;
     const token = jwt.sign({ userId: user._id }, secret, { expiresIn: "15m" });
     const link = `http://paradoxstudy.me/pages/resetpassword/${user._id}/${token}`;
-    console.log(link);
 
-    sendResetPasswordMail(user.username, email, link); // Assuming sendResetPasswordMail is defined elsewhere
+    await sendResetPasswordMail(user.username, email, link); // Assuming sendResetPasswordMail is defined elsewhere
     res.status(200).json({
       status: "success",
       message: "Password Reset Email Sent... Please Check Your Email",
@@ -188,10 +259,81 @@ async function userPasswordReset(req, res) {
   }
 }
 
+async function updateProfile(req, res) {
+  try {
+    await User.uploadFiles(req, res, async (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Error uploading files" });
+      }
+
+      const userId = req.userId; // Assuming you're using authentication middleware and the user ID is stored in req.user._id
+
+      const { avatar, ...rest } = req.body; // Exclude avatar from the body
+      let updatedData = { ...rest };
+
+      let avatarPath;
+      if (req.files) {
+        // If new avatar is provided, use the new avatar
+        avatarPath = req.files["avatar"][0].path; // Corrected to access req.files["avatar"][0].path
+      } else if (avatar) {
+        // If avatar field is provided in the request body, use it as the new avatar
+        avatarPath = avatar;
+      }
+
+      let data = {
+        ...updatedData,
+        avatar: avatarPath ? avatarPath : undefined,
+      };
+
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { $set: data },
+        { new: true }
+      );
+
+      // const updatedUser = await User.findById(userId); // Fetch updated user data
+      res.status(200).json({ status: "success", data: user });
+    });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ status: "failed", message: "Unable to process request" });
+  }
+}
+
+async function userById(req, res) {
+  try {
+    const userId = req.userId;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ status: "failed", message: "user not present" });
+    }
+
+    res.status(200).json({
+      status: "success",
+      data: user,
+    });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ status: "failed", message: "Unable to process request" });
+  }
+}
+
 module.exports = {
   userRegistration,
   userLogin,
   verifyMail,
   forgotPassword,
   userPasswordReset,
+  updateProfile,
+  userById,
+  getChatMaruti,
+  getPdfData,
+  askChatBot,
 };
