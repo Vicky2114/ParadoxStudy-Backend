@@ -1,9 +1,12 @@
 const User = require("../models/user.model");
 const bcrypt = require("bcrypt");
 const axios = require("axios");
-
+const { Readable } = require("stream");
 const jwt = require("jsonwebtoken");
 const formidable = require("formidable");
+const fs = require("fs");
+const Books = require("../models/books.model");
+
 const {
   sendVerificationMail,
   sendResetPasswordMail,
@@ -18,7 +21,7 @@ async function getChatMaruti(req, res) {
     formData.append("chatId", chatId);
     formData.append("selected_book", selected_book);
     const response = await axios.post(
-      "http://20.42.96.57:8000/getChats",
+      "http://172.190.120.7:8000/getChats",
       formData
     );
 
@@ -44,7 +47,7 @@ const getPdfData = async (req, res) => {
     const formData = new FormData();
     formData.append("userId", userId);
     const response = await axios.post(
-      "http://20.42.96.57:8000/getAllData",
+      "http://172.190.120.7:8000/getAllData",
       formData
       // { headers: formData.getHeaders() } // Include multipart/form-data headers
     );
@@ -68,7 +71,7 @@ const askChatBot = async (req, res) => {
     formData.append("question", question);
     formData.append("selected_book", selected_book);
     const response = await axios.post(
-      "http://20.42.96.57:8000/ask",
+      "http://172.190.120.7:8000/ask",
       formData
       // { headers: formData.getHeaders() } // Include multipart/form-data headers
     );
@@ -80,6 +83,50 @@ const askChatBot = async (req, res) => {
       .json({ status: "failed", message: "Unable to fetch chat data" });
   }
 };
+
+const uploadBooks = async (req, res) => {
+  try {
+    const { chatId, userId, name, sem } = req.body;
+    const formData = new FormData();
+    formData.append("chatId", chatId);
+    formData.append("userId", userId);
+
+    // Convert file buffer to Blob
+    const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
+
+    // Append Blob to FormData
+    formData.append("pdfFile", blob, req.file.originalname);
+
+    // Make further API call using Axios
+    const axiosResponse = await axios.post(
+      "http://172.190.120.7:8000/upload",
+      formData
+      // { headers: formData.getHeaders() }
+    );
+    const bookSchema = await Books.create({
+      userId: userId,
+      name: name,
+      filename: axiosResponse.data.pdf_name,
+      uri: axiosResponse.data.file_url,
+      sem: sem,
+    });
+
+    await bookSchema.save();
+    // Assuming res.data contains the response from the other server
+    res.send({
+      message: `Book ${name} is succesfully uploaded`,
+      axiosResponseData: bookSchema,
+    });
+  } catch (error) {
+    console.error("Error in uploadBooks:", error);
+    res.status(500).json({
+      status: "failed",
+      message: "Unable to upload books",
+      error: error,
+    });
+  }
+};
+
 async function userRegistration(req, res) {
   const { username, email, password, isVerified } = req.body;
   try {
@@ -153,10 +200,9 @@ async function userLogin(req, res) {
         .status(401)
         .json({ status: "failed", message: "First verify email" });
     }
-    // Generate JWT token
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "10h",
-    });
+
+    // Generate JWT token without expiration time
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
 
     res.status(200).json({
       status: "success",
@@ -169,7 +215,6 @@ async function userLogin(req, res) {
     res.status(500).json({ status: "failed", message: "Unable to login" });
   }
 }
-
 async function verifyMail(req, res) {
   try {
     const updateInfo = await User.updateOne(
@@ -336,4 +381,5 @@ module.exports = {
   getChatMaruti,
   getPdfData,
   askChatBot,
+  uploadBooks,
 };
