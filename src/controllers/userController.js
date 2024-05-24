@@ -200,10 +200,9 @@ async function userLogin(req, res) {
         .status(401)
         .json({ status: "failed", message: "First verify email" });
     }
-    // Generate JWT token
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "10h",
-    });
+
+    // Generate JWT token without expiration time
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
 
     res.status(200).json({
       status: "success",
@@ -216,7 +215,6 @@ async function userLogin(req, res) {
     res.status(500).json({ status: "failed", message: "Unable to login" });
   }
 }
-
 async function verifyMail(req, res) {
   try {
     const updateInfo = await User.updateOne(
