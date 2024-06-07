@@ -17,6 +17,21 @@ const bookSchema = new mongoose.Schema({
   uri: {
     type: String,
   },
+  type: {
+    type: String,
+  },
+  docs_name: {
+    type: String,
+  },
+  subject: {
+    type: String,
+  },
+  count: {
+    type: Number,
+  },
+  subject: {
+    type: String,
+  },
   sem: {
     type: String,
   },
