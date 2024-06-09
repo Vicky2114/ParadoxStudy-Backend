@@ -6,7 +6,6 @@ const bookSchema = new mongoose.Schema({
   },
   filename: {
     type: String,
-    required: true,
   },
   userId: {
     type: String,

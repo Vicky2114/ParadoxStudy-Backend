@@ -16,10 +16,12 @@ async function getChatMaruti(req, res) {
   try {
     // Make an Axios request here
     // Make an Axios request here
-    const { chatId, selected_book } = req.body;
+    const { chatId, selected_book, page, limit } = req.body;
     const formData = new FormData();
     formData.append("chatId", chatId);
     formData.append("selected_book", selected_book);
+    formData.append("page", page);
+    formData.append("limit", limit);
     const response = await axios.post(
       "http://172.190.120.7:8000/getChats",
       formData
@@ -97,6 +99,11 @@ const uploadBooks = async (req, res) => {
     formData.append("type", type);
     formData.append("subject", subject);
     formData.append("filename", filename);
+    console.log(chatId);
+    console.log(userId);
+    console.log(type);
+    console.log(subject);
+    console.log(filename);
 
     // Convert file buffer to Blob
     const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
@@ -110,6 +117,7 @@ const uploadBooks = async (req, res) => {
       formData
       // { headers: formData.getHeaders() }
     );
+
     console.log(axiosResponse.data);
     if (axiosResponse.data.message === "File is uploaded successfully") {
       const book = await Books.findOne({
@@ -118,10 +126,11 @@ const uploadBooks = async (req, res) => {
       book.count += 1;
       await book.save();
       return res.send({
-        message: `Book ${filename} is succesfully uploaded`,
+        message: `Book ${filename} is successfully uploaded`,
         axiosResponseData: book,
       });
     }
+
     const bookSchema = await Books.create({
       userId: userId,
       docs_name: axiosResponse.data.pdf_name,
@@ -130,22 +139,52 @@ const uploadBooks = async (req, res) => {
       count: 0,
       subject: subject,
       uri: axiosResponse.data.file_url,
-      sem: sem,
+      // sem: sem,
     });
 
     await bookSchema.save();
     // Assuming res.data contains the response from the other server
     res.send({
-      message: `Book ${filename} is succesfully uploaded`,
+      message: `Book ${filename} is successfully uploaded`,
       axiosResponseData: bookSchema,
     });
   } catch (error) {
     console.error("Error in uploadBooks:", error);
-    res.status(500).json({
-      status: "failed",
-      message: "Unable to upload books",
-      error: error,
-    });
+
+    // Handling Axios-specific errors
+    if (axios.isAxiosError(error)) {
+      if (error.response) {
+        console.log(error.response.data);
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        res.status(error.response.status).json({
+          status: "failed",
+          message: error.response.data.error,
+          error: error.response.data,
+        });
+      } else if (error.request) {
+        // The request was made but no response was received
+        res.status(500).json({
+          status: "failed",
+          message: "No response received from Axios request",
+          error: error.request,
+        });
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        res.status(500).json({
+          status: "failed",
+          message: error.response.data.error,
+          error: error.message,
+        });
+      }
+    } else {
+      // Handling other errors
+      res.status(500).json({
+        status: "failed",
+        message: "Unable to upload books",
+        error: error.message,
+      });
+    }
   }
 };
 
