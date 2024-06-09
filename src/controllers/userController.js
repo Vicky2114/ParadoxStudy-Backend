@@ -16,10 +16,12 @@ async function getChatMaruti(req, res) {
   try {
     // Make an Axios request here
     // Make an Axios request here
-    const { chatId, selected_book } = req.body;
+    const { chatId, selected_book, page, limit } = req.body;
     const formData = new FormData();
     formData.append("chatId", chatId);
     formData.append("selected_book", selected_book);
+    formData.append("page", page);
+    formData.append("limit", limit);
     const response = await axios.post(
       "http://172.190.120.7:8000/getChats",
       formData
@@ -97,11 +99,11 @@ const uploadBooks = async (req, res) => {
     formData.append("type", type);
     formData.append("subject", subject);
     formData.append("filename", filename);
-    console.log(chatId)
-    console.log(userId)
-    console.log(type)
-    console.log(subject)
-    console.log(filename)
+    console.log(chatId);
+    console.log(userId);
+    console.log(type);
+    console.log(subject);
+    console.log(filename);
 
     // Convert file buffer to Blob
     const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
@@ -152,7 +154,7 @@ const uploadBooks = async (req, res) => {
     // Handling Axios-specific errors
     if (axios.isAxiosError(error)) {
       if (error.response) {
-        console.log(error.response.data)
+        console.log(error.response.data);
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
         res.status(error.response.status).json({
