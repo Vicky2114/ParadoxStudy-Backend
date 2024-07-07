@@ -58,6 +58,9 @@ const userSchema = new mongoose.Schema(
     },
     branch:{
       type:String,
+    },
+    countBooks:{
+      type:Number,
     }
   },
   {
