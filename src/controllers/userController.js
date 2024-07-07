@@ -113,7 +113,7 @@ const uploadBooks = async (req, res) => {
 
     // Make further API call using Axios
     const axiosResponse = await axios.post(
-      "http://127.0.0.1:8000/upload",
+      "http://172.190.120.7:8000/upload",
       formData
       // { headers: formData.getHeaders() }
     );
@@ -443,7 +443,7 @@ async function deleteBook(req, res) {
 
     const axiosResponse = await axios({
       method: "delete",
-      url: "http://127.0.0.1:8000/delete",
+      url: "http://172.190.120.7:8000/delete",
       data: formData,
       headers: { "Content-Type": "multipart/form-data" }, // Include multipart/form-data headers
     });
