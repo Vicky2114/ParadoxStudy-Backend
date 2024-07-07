@@ -13,6 +13,7 @@ router.post("/send-reset-password-email", UserController.forgotPassword);
 router.post("/reset-password/:id/:token", UserController.userPasswordReset);
 router.patch("/updateProfile", authMiddleware, UserController.updateProfile);
 router.get("/userById", authMiddleware, UserController.userById);
+router.delete("/deleteBook", authMiddleware, UserController.deleteBook);
 router.post("/getChats", upload.single("pdf"), UserController.getChatMaruti);
 router.post("/getAllData", upload.single("pdf"), UserController.getPdfData);
 router.post("/ask", upload.single("pdf"), UserController.askChatBot);

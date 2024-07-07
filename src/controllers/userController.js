@@ -431,6 +431,87 @@ async function userById(req, res) {
   }
 }
 
+async function deleteBook(req, res) {
+  try {
+    const userId = req.userId;
+    const { selected_book } = req.body;
+    console.log(selected_book);
+    const formData = new FormData();
+    formData.append("selected_book", selected_book);
+    formData.append("userId", userId);
+    console.log(userId);
+
+    const axiosResponse = await axios({
+      method: "delete",
+      url: "http://172.190.120.7:8000/delete",
+      data: formData,
+      headers: { "Content-Type": "multipart/form-data" }, // Include multipart/form-data headers
+    });
+
+    // console.log(axiosResponse.data);
+
+    if (axiosResponse.data.message === "Book deleted successfully") {
+      const book = await Books.findOne({ docs_name: selected_book });
+
+      if (book) {
+        if (book.count > 0) {
+          book.count -= 1;
+          await book.save(); // Save the updated book
+        }
+        return res.send({
+          message: `Book deleted successfully`,
+          axiosResponseData: book,
+        });
+      } else {
+        return res.status(404).json({
+          status: "failed",
+          message: "Book not found",
+        });
+      }
+    } else {
+      return res.status(500).json({
+        status: "failed",
+        message: "Failed to delete book",
+      });
+    }
+  } catch (error) {
+    // console.error(error);
+    if (axios.isAxiosError(error)) {
+      if (error.response) {
+        console.log(error.response.data);
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        res.status(error.response.status).json({
+          status: "failed",
+          message: error.response.data.error || "Failed to delete book",
+          error: error.response.data,
+        });
+      } else if (error.request) {
+        // The request was made but no response was received
+        res.status(500).json({
+          status: "failed",
+          message: "No response received from Axios request",
+          error: error.request,
+        });
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        res.status(500).json({
+          status: "failed",
+          message: "Error setting up Axios request",
+          error: error.message,
+        });
+      }
+    } else {
+      // Handling other errors
+      res.status(500).json({
+        status: "failed",
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+  }
+}
+
 module.exports = {
   userRegistration,
   userLogin,
@@ -443,4 +524,5 @@ module.exports = {
   getPdfData,
   askChatBot,
   uploadBooks,
+  deleteBook,
 };
