@@ -29,7 +29,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.get("/", authController.start);
 app.use("/api", require("./src/routes"));
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/stage1', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 const dbURI = process.env.MONGO_URL;
 
