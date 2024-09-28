@@ -190,6 +190,7 @@ const uploadBooks = async (req, res) => {
 
 async function userRegistration(req, res) {
   const { username, email, password, isVerified } = req.body;
+  console.log(req.body);
   try {
     if (!username || !email || !password) {
       return res
@@ -211,7 +212,7 @@ async function userRegistration(req, res) {
       username: username,
       email: email,
       password: hashPassword,
-      isVerified: isVerified || false,
+      isVerified: isVerified ?? false,
     });
     await sendVerificationMail(username, email, newUser._id);
     const userData = await newUser.save();
