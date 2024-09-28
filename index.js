@@ -6,6 +6,9 @@ const dotenv = require("dotenv");
 const bodyParser=require('body-parser')
 const authController = require("./src/controllers/auth_controller");
 const path = require("path");
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./src/config/swaggerConfig');
+
 dotenv.config();
 app.use(
   cors({
@@ -25,6 +28,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.get("/", authController.start);
 app.use("/api", require("./src/routes"));
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 const dbURI = process.env.MONGO_URL;
 
