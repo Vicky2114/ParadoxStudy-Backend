@@ -5,8 +5,8 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon src/index.js",
-    "start": "nodemon index.js",
+    "dev": "node src/index.js",
+    "start": "node index.js",
     "prod": "node index.js"
   },
   "keywords": [
