@@ -5,6 +5,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 const UserController = require("../controllers/userController.js");
 const authMiddleware = require("../middleware/jwt_authMiddleware.js");
+const passport = require("passport");
 
 /**
  * @swagger
@@ -269,5 +270,16 @@ router.post("/ask", upload.single("pdf"), UserController.askChatBot);
  *         description: Book uploaded successfully
  */
 router.post("/upload", upload.single("pdf"), UserController.uploadBooks);
+
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+router.get('/google/callback', 
+  passport.authenticate('google', { failureRedirect: '/login' }),
+  (req, res) => {
+    // Successful authentication, redirect to your dashboard or success page
+    res.send({message:"Login successfuly" , status :true})
+  }
+);
+
 
 module.exports = router;
