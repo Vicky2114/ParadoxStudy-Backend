@@ -12,12 +12,12 @@ passport.use(new GoogleStrategy({
 async (accessToken, refreshToken, profile, done) => {
   // Find or create user logic
   try {
-    let user = await User.findOne({ googleId: profile.id });
+    let user = await User.findOne({ email: profile.emails[0].value });
 
     if (!user) {
       user = new User({
         googleId: profile.id,
-        name: profile.displayName,
+        username: profile.displayName,
         email: profile.emails[0].value,
         avatar: profile.photos[0].value
       });

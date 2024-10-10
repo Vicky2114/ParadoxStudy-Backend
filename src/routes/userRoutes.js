@@ -277,7 +277,7 @@ router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: '/login' }),
   (req, res) => {
     // Successful authentication, redirect to your dashboard or success page
-    res.redirect('/'); 
+    res.send({message:"Login successfuly" , status :true})
   }
 );
 
