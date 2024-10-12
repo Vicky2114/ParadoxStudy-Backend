@@ -10,7 +10,7 @@ const Books = require("../models/books.model");
 const {
   sendVerificationMail,
   sendResetPasswordMail,
-  sendEmailToAdminVerified
+  sendEmailToAdminVerified,
 } = require("../utils/sendVerificationMail");
 
 async function getChatMaruti(req, res) {
