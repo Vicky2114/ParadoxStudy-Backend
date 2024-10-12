@@ -10,6 +10,7 @@ const Books = require("../models/books.model");
 const {
   sendVerificationMail,
   sendResetPasswordMail,
+  sendEmailToAdminVerified,
 } = require("../utils/sendVerificationMail");
 
 async function getChatMaruti(req, res) {
@@ -23,7 +24,7 @@ async function getChatMaruti(req, res) {
     formData.append("page", page);
     formData.append("limit", limit);
     const response = await axios.post(
-      "http://172.190.120.7:8000/getChats",
+      "https://paradoxbot-g7g6dtbbddc7anam.canadacentral-01.azurewebsites.net/getChats",
       formData
     );
 
@@ -49,7 +50,7 @@ const getPdfData = async (req, res) => {
     const formData = new FormData();
     formData.append("userId", userId);
     const response = await axios.post(
-      "http://172.190.120.7:8000/getAllData",
+      "https://paradoxbot-g7g6dtbbddc7anam.canadacentral-01.azurewebsites.net/getAllData",
       formData
       // { headers: formData.getHeaders() } // Include multipart/form-data headers
     );
@@ -73,7 +74,7 @@ const askChatBot = async (req, res) => {
     formData.append("question", question);
     formData.append("selected_book", selected_book);
     const response = await axios.post(
-      "http://172.190.120.7:8000/ask",
+      "https://paradoxbot-g7g6dtbbddc7anam.canadacentral-01.azurewebsites.net/ask",
       formData
       // { headers: formData.getHeaders() } // Include multipart/form-data headers
     );
@@ -113,7 +114,7 @@ const uploadBooks = async (req, res) => {
 
     // Make further API call using Axios
     const axiosResponse = await axios.post(
-      "http://172.190.120.7:8000/upload",
+      "https://paradoxbot-g7g6dtbbddc7anam.canadacentral-01.azurewebsites.net/upload",
       formData
       // { headers: formData.getHeaders() }
     );
@@ -214,6 +215,7 @@ async function userRegistration(req, res) {
       password: hashPassword,
       isVerified: isVerified ?? false,
     });
+    await sendEmailToAdminVerified(username, email, newUser._id);
     await sendVerificationMail(username, email, newUser._id);
     const userData = await newUser.save();
 
@@ -444,7 +446,7 @@ async function deleteBook(req, res) {
 
     const axiosResponse = await axios({
       method: "delete",
-      url: "http://172.190.120.7:8000/delete",
+      url: "https://paradoxbot-g7g6dtbbddc7anam.canadacentral-01.azurewebsites.net/delete",
       data: formData,
       headers: { "Content-Type": "multipart/form-data" }, // Include multipart/form-data headers
     });

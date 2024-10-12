@@ -51,7 +51,46 @@ async function sendVerificationMail(name, email, id) {
     throw new Error("Failed to send verification email");
   }
 }
+async function sendVerifiedAdminEmailToUser(username, email) {
+  // Create the email content
+  const mailOptions = {
+    from: process.env.EMAIL_FROM,
+    to: email,
+    subject: "Admin Account Verified",
+    html: `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9;">
+      <h1 style="color: #333; text-align: center; font-size: 24px; margin-bottom: 20px;">Hello ${username},</h1>
+      
+      <p style="font-size: 16px; color: #555; line-height: 1.6;">
+        Your admin account has been successfully verified. You now have access to all admin privileges.
+      </p>
+      
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="#" style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; font-size: 16px; text-decoration: none; border-radius: 5px;">
+          Go to Admin Dashboard
+        </a>
+      </div>
+      
+      <p style="font-size: 16px; color: #555; line-height: 1.6;">
+        If you have any questions, feel free to reach out to our support team.
+      </p>
+      
+      <p style="font-size: 14px; color: #999; text-align: center; margin-top: 30px;">
+        Best regards,<br> 
+        <strong>Team</strong>
+      </p>
+    </div>
+  `,
+  };
 
+  // Send the email
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`Email sent: ${info.response}`);
+  } catch (error) {
+    console.error(`Error sending email: ${error}`);
+  }
+}
 async function sendResetPasswordMail(name, email, link) {
   const mailOptions = {
     from: process.env.EMAIL_FROM,
@@ -103,4 +142,52 @@ async function sendResetPasswordMail(name, email, link) {
   }
 }
 
-module.exports = { sendVerificationMail, sendResetPasswordMail };
+async function sendEmailToAdminVerified(username, email, userId) {
+  // Backend endpoint for admin to verify the user
+  const verificationUrl = `http://localhost:8000/api/admin/verify/${userId}`;
+
+  // Create the email content with improved UI
+  const mailOptions = {
+    from: process.env.EMAIL_FROM,
+    to: "paradoxstudy5@gmail.com",
+    subject: "Verify Admin Link",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9;">
+        <h1 style="color: #333; text-align: center; font-size: 24px; margin-bottom: 20px;">Admin Verification Request</h1>
+        
+        <p style="font-size: 16px; color: #555; line-height: 1.6;">
+          A new admin account request has been made for <strong>${username}</strong>. Please click the button below to verify the account.
+        </p>
+        
+        <div style="text-align: center; margin: 20px 0;">
+          <a href="${verificationUrl}" style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; font-size: 16px; text-decoration: none; border-radius: 5px;">
+            Verify Admin Account
+          </a>
+        </div>
+        
+        <p style="font-size: 14px; color: #999; text-align: center; margin-top: 30px;">
+          If you did not request this, please ignore this email.
+        </p>
+        
+        <p style="font-size: 14px; color: #999; text-align: center; margin-top: 30px;">
+          Best regards,<br> 
+          <strong>Team</strong>
+        </p>
+      </div>
+    `,
+  };
+
+  // Send the email
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`Verification email sent: ${info.response}`);
+  } catch (error) {
+    console.error(`Error sending email: ${error}`);
+  }
+}
+module.exports = {
+  sendVerificationMail,
+  sendResetPasswordMail,
+  sendEmailToAdminVerified,
+  sendVerifiedAdminEmailToUser,
+};
