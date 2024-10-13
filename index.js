@@ -3,12 +3,12 @@ const app = express();
 const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const bodyParser=require('body-parser')
+const bodyParser = require("body-parser");
 const authController = require("./src/controllers/auth_controller");
 const path = require("path");
-const swaggerUi = require('swagger-ui-express');
-const swaggerSpec = require('./src/config/swaggerConfig');
-const passport = require('./src/controllers/googleAuthController'); 
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./src/config/swaggerConfig");
+const passport = require("./src/controllers/googleAuthController");
 const session = require("express-session");
 
 dotenv.config();
@@ -16,6 +16,7 @@ app.use(
   cors({
     origin: [
       "https://paradoxstudy.me",
+      "https://paradox-study-admin.vercel.app/",
       "http://localhost:3000",
       "http://localhost:8000",
     ],
@@ -43,7 +44,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.get("/", authController.start);
 app.use("/api", require("./src/routes"));
 
-app.use('/stage1', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use("/stage1", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 const dbURI = process.env.MONGO_URL;
 

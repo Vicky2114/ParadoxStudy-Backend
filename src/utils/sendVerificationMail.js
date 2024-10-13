@@ -144,7 +144,7 @@ async function sendResetPasswordMail(name, email, link) {
 
 async function sendEmailToAdminVerified(username, email, userId) {
   // Backend endpoint for admin to verify the user
-  const verificationUrl = `http://localhost:8000/api/admin/verify/${userId}`;
+  const verificationUrl = `https://projectdev2114.azurewebsites.net/api/admin/verify/${userId}`;
 
   // Create the email content with improved UI
   const mailOptions = {
