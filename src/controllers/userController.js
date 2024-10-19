@@ -24,7 +24,7 @@ async function getChatMaruti(req, res) {
     formData.append("page", page);
     formData.append("limit", limit);
     const response = await axios.post(
-      "https://paradoxbot-g7g6dtbbddc7anam.canadacentral-01.azurewebsites.net/getChats",
+      "https://f955c179-bacd-41d6-8b82-a3e8b03f9219.deepnoteproject.com/getChats",
       formData
     );
 
@@ -50,7 +50,7 @@ const getPdfData = async (req, res) => {
     const formData = new FormData();
     formData.append("userId", userId);
     const response = await axios.post(
-      "https://paradoxbot-g7g6dtbbddc7anam.canadacentral-01.azurewebsites.net/getAllData",
+      "https://f955c179-bacd-41d6-8b82-a3e8b03f9219.deepnoteproject.com/getAllData",
       formData
       // { headers: formData.getHeaders() } // Include multipart/form-data headers
     );
@@ -74,7 +74,7 @@ const askChatBot = async (req, res) => {
     formData.append("question", question);
     formData.append("selected_book", selected_book);
     const response = await axios.post(
-      "https://paradoxbot-g7g6dtbbddc7anam.canadacentral-01.azurewebsites.net/ask",
+      "https://f955c179-bacd-41d6-8b82-a3e8b03f9219.deepnoteproject.com/ask",
       formData
       // { headers: formData.getHeaders() } // Include multipart/form-data headers
     );
@@ -114,7 +114,7 @@ const uploadBooks = async (req, res) => {
 
     // Make further API call using Axios
     const axiosResponse = await axios.post(
-      "https://paradoxbot-g7g6dtbbddc7anam.canadacentral-01.azurewebsites.net/upload",
+      "https://f955c179-bacd-41d6-8b82-a3e8b03f9219.deepnoteproject.com/upload",
       formData
       // { headers: formData.getHeaders() }
     );
@@ -446,7 +446,7 @@ async function deleteBook(req, res) {
 
     const axiosResponse = await axios({
       method: "delete",
-      url: "https://paradoxbot-g7g6dtbbddc7anam.canadacentral-01.azurewebsites.net/delete",
+      url: "https://f955c179-bacd-41d6-8b82-a3e8b03f9219.deepnoteproject.com/delete",
       data: formData,
       headers: { "Content-Type": "multipart/form-data" }, // Include multipart/form-data headers
     });
