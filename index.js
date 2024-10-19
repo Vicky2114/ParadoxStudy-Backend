@@ -16,7 +16,7 @@ app.use(
   cors({
     origin: [
       "https://paradoxstudy.me",
-      "https://paradox-study-admin.vercel.app/",
+      "https://paradox-study-admin.vercel.app",
       "http://localhost:3000",
       "http://localhost:8000",
     ],
