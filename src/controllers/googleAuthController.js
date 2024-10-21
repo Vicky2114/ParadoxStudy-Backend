@@ -15,13 +15,14 @@ passport.use(
       // Find or create user logic
       try {
         let user = await User.findOne({ email: profile.emails[0].value });
-
+          console.log(user)
         if (!user) {
           user = new User({
             googleId: profile.id,
             username: profile.displayName,
             email: profile.emails[0].value,
             avatar: profile.photos[0].value,
+            isVerified:true
           });
           await user.save();
         }
