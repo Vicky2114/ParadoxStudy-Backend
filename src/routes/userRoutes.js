@@ -6,7 +6,7 @@ const upload = multer({ storage: storage });
 const UserController = require("../controllers/userController.js");
 const authMiddleware = require("../middleware/jwt_authMiddleware.js");
 const passport = require("passport");
-
+const jwt = require("jsonwebtoken");
 /**
  * @swagger
  * /user/register:
@@ -271,15 +271,34 @@ router.post("/ask", upload.single("pdf"), UserController.askChatBot);
  */
 router.post("/upload", upload.single("pdf"), UserController.uploadBooks);
 
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-router.get('/google/callback', 
-  passport.authenticate('google', { failureRedirect: '/login' }),
-  (req, res) => {
-    // Successful authentication, redirect to your dashboard or success page
-    res.send({message:"Login successfuly" , status :true})
-  }
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
+router.get(
+  "/google/callback",
+  passport.authenticate("google", { failureRedirect: "/login" }),
+  (req, res) => {
+    console.log(req.user);
+    // Successful authentication, redirect to your dashboard or success page
+    const token = jwt.sign({ userId: req.user._id }, process.env.JWT_SECRET, {
+      expiresIn: "10h",
+    });
+
+    // Send the token back to the frontend
+    res.send(`
+      <script>
+        window.opener.postMessage(${JSON.stringify({
+          message: "Login successfully",
+          status: true,
+          token,
+          user: req.user
+        })}, '*');
+        window.close();
+      </script>
+    `);
+  }
+);
 
 module.exports = router;
