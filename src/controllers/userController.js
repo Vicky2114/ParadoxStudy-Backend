@@ -253,6 +253,13 @@ async function userLogin(req, res) {
         .status(404)
         .json({ status: "failed", message: "You are not registered" });
     }
+    if (user.isDisable) {
+      return res.status(403).json({ 
+        status: "failed", 
+        message: "Access denied. Your account has been disabled. Please contact support for further assistance." 
+      });
+    }
+    
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
