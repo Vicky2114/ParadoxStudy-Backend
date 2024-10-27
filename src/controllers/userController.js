@@ -433,6 +433,50 @@ async function userById(req, res) {
       .json({ status: "failed", message: "Unable to process request" });
   }
 }
+async function userData(req, res) {
+  try {
+    const userId = req.userId;
+    const { page = 1, limit = 10 } = req.query; 
+
+   
+    const user = await User.findById(userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ status: "failed", message: "User not present" });
+    }
+    if (user?.isAdmin === false) {
+      return res
+        .status(401)
+        .json({ status: "failed", message: "Not Authorized for User" });
+    }
+
+    const getDataUser = await User.find({})
+      .sort({ createdAt: -1 }) 
+      .skip((page - 1) * limit) 
+      .limit(parseInt(limit)) 
+      .exec();
+
+    // Get total count of users
+    const totalUsers = await User.countDocuments();
+
+    res.status(200).json({
+      status: "success",
+      data: getDataUser,
+      pagination: {
+        totalUsers,
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalUsers / limit),
+        limit: parseInt(limit),
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ status: "failed", message: "Unable to process request" });
+  }
+}
 
 async function deleteBook(req, res) {
   try {
@@ -528,4 +572,5 @@ module.exports = {
   askChatBot,
   uploadBooks,
   deleteBook,
+  userData,
 };

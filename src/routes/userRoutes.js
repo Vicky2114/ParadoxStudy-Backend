@@ -276,6 +276,9 @@ router.get(
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
+//admin get data
+router.get("/userData", authMiddleware, UserController.userData);
+
 router.get(
   "/google/callback",
   passport.authenticate("google", { failureRedirect: "/login" }),
@@ -293,7 +296,7 @@ router.get(
           message: "Login successfully",
           status: true,
           token,
-          user: req.user
+          user: req.user,
         })}, '*');
         window.close();
       </script>
