@@ -278,6 +278,7 @@ router.get(
 
 //admin get data
 router.get("/userData", authMiddleware, UserController.userData);
+router.patch("/userDisable/:id", authMiddleware, UserController.userIsDisable);
 
 router.get(
   "/google/callback",
