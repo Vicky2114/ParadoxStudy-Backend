@@ -6,12 +6,14 @@ const jwt = require("jsonwebtoken");
 const formidable = require("formidable");
 const fs = require("fs");
 const Books = require("../models/books.model");
+const moongose = require("mongoose");
 
 const {
   sendVerificationMail,
   sendResetPasswordMail,
   sendEmailToAdminVerified,
 } = require("../utils/sendVerificationMail");
+const { default: mongoose } = require("mongoose");
 
 async function getChatMaruti(req, res) {
   try {
@@ -251,6 +253,13 @@ async function userLogin(req, res) {
         .status(404)
         .json({ status: "failed", message: "You are not registered" });
     }
+    if (user.isDisable) {
+      return res.status(403).json({ 
+        status: "failed", 
+        message: "Access denied. Your account has been disabled. Please contact support for further assistance." 
+      });
+    }
+    
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
@@ -433,6 +442,125 @@ async function userById(req, res) {
       .json({ status: "failed", message: "Unable to process request" });
   }
 }
+async function userIsDisable(req, res) {
+  try {
+    const userId = req.params.id; // Extract the user ID from params
+    const ObjectId = new mongoose.Types.ObjectId(userId); // Ensure it's an ObjectId
+
+    // Find the user by ID
+    const user = await User.findById(ObjectId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ status: "failed", message: "User not present" });
+    }
+   console.log(req.body.isDisable)
+    // Check if isDisable is provided in the request body
+    if (req.body.hasOwnProperty("isDisable")) {
+      user.isDisable = req.body.isDisable;
+    } else {
+      user.isDisable = user.isDisable !== undefined ? user.isDisable : false; 
+    }
+
+    await user.save(); // Save the updated user
+
+    res.status(200).json({
+      status: "success",
+      data: user,
+    });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ status: "failed", message: "Unable to process request" });
+  }
+}
+
+async function userData(req, res) {
+  try {
+    const userId = req.userId;
+    const { page = 1, limit = 10 } = req.query;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ status: "failed", message: "User not present" });
+    }
+    if (user?.isAdmin === false) {
+      return res
+        .status(401)
+        .json({ status: "failed", message: "Not Authorized for User" });
+    }
+
+    const skip = (page - 1) * limit;
+
+    // Get the total number of users first
+    const totalRecords = await User.countDocuments();
+
+    // Fetch the paginated users
+    const result = await User.aggregate([
+      {
+        $addFields: {
+          stringUserId: { $toString: "$_id" },
+        },
+      },
+      {
+        $lookup: {
+          from: "chatbot",
+          localField: "stringUserId",
+          foreignField: "userId",
+          as: "chatbotData",
+        },
+      },
+      {
+        $addFields: {
+          bookCount: { $size: "$chatbotData" },
+        },
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+      {
+        $skip: skip,
+      },
+      {
+        $limit: parseInt(limit),
+      },
+      {
+        $project: {
+          _id: 1,
+          username: 1,
+          email: 1,
+          isVerified: 1,
+          isAdmin: 1,
+          institution: 1,
+          avatar: 1,
+          bookCount: 1,
+          isDisable: 1,
+        },
+      },
+    ]);
+
+    // Calculate total pages
+    const totalPages = Math.ceil(totalRecords / limit);
+
+    res.status(200).json({
+      status: "success",
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total: totalRecords, // total number of records
+      totalPages: totalPages, // total pages
+      data: result,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      status: "failed",
+      message: "Unable to process request",
+    });
+  }
+}
 
 async function deleteBook(req, res) {
   try {
@@ -528,4 +656,6 @@ module.exports = {
   askChatBot,
   uploadBooks,
   deleteBook,
+  userData,
+  userIsDisable,
 };

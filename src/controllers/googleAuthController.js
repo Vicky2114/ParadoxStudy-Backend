@@ -9,20 +9,29 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "https://projectdev2114.azurewebsites.net/api/user/google/callback", // Use your actual redirect URL
+      callbackURL:
+        "https://projectdev2114.azurewebsites.net/api/user/google/callback", // Use your actual redirect URL
     },
     async (accessToken, refreshToken, profile, done) => {
       // Find or create user logic
       try {
         let user = await User.findOne({ email: profile.emails[0].value });
-          console.log(user)
+        console.log(user);
+        if (user.isDisable) {
+          return res.status(403).json({
+            status: "failed",
+            message:
+              "Access denied. Your account has been disabled. Please contact support for further assistance.",
+          });
+        }
         if (!user) {
           user = new User({
             googleId: profile.id,
             username: profile.displayName,
             email: profile.emails[0].value,
             avatar: profile.photos[0].value,
-            isVerified:true
+            // password:,
+            isVerified: true,
           });
           await user.save();
         }
