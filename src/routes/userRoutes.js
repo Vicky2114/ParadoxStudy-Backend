@@ -7,6 +7,7 @@ const UserController = require("../controllers/userController.js");
 const authMiddleware = require("../middleware/jwt_authMiddleware.js");
 const passport = require("passport");
 const jwt = require("jsonwebtoken");
+const { generateToken } = require("../utils/sevices.js");
 /**
  * @swagger
  * /user/register:
@@ -269,6 +270,7 @@ router.post("/ask", upload.single("pdf"), UserController.askChatBot);
  *       200:
  *         description: Book uploaded successfully
  */
+router.post("/refresh", UserController.refreshAccessToken);
 router.post("/upload", upload.single("pdf"), UserController.uploadBooks);
 
 router.get(
@@ -286,9 +288,16 @@ router.get(
   (req, res) => {
     console.log(req.user);
     // Successful authentication, redirect to your dashboard or success page
-    const token = jwt.sign({ userId: req.user._id }, process.env.JWT_SECRET, {
-      expiresIn: "10h",
-    });
+    const accessToken = generateToken(
+      req.user._id,
+      process.env.JWT_SECRET,
+      "1d"
+    );
+    const refreshToken = generateToken(
+      req.user._id,
+      process.env.JWT_REFRESH_SECRET,
+      "7d"
+    );
 
     // Send the token back to the frontend
     res.send(`
@@ -296,7 +305,8 @@ router.get(
         window.opener.postMessage(${JSON.stringify({
           message: "Login successfully",
           status: true,
-          token,
+          accessToken,
+          refreshToken,
           user: req.user,
         })}, '*');
         window.close();
