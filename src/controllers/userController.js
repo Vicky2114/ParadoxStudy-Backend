@@ -14,6 +14,7 @@ const {
   sendEmailToAdminVerified,
 } = require("../utils/sendVerificationMail");
 const { default: mongoose } = require("mongoose");
+const { generateToken } = require("../utils/sevices");
 
 async function getChatMaruti(req, res) {
   try {
@@ -195,42 +196,56 @@ async function userRegistration(req, res) {
   const { username, email, password, isVerified } = req.body;
   console.log(req.body);
   try {
+    // Validate required fields
     if (!username || !email || !password) {
       return res
         .status(400)
         .json({ status: "failed", message: "All fields are required" });
     }
 
-    const existingUser = await User.findOne({ email: email });
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res
         .status(409)
         .json({ status: "failed", message: "Email already exists" });
     }
 
+    // Hash the password
     const salt = await bcrypt.genSalt(10);
     const hashPassword = await bcrypt.hash(password, salt);
 
+    // Create a new user
     const newUser = new User({
-      username: username,
-      email: email,
+      username,
+      email,
       password: hashPassword,
       isVerified: isVerified ?? false,
     });
+
+    // Send emails for admin and verification
     await sendEmailToAdminVerified(username, email, newUser._id);
     await sendVerificationMail(username, email, newUser._id);
+
     const userData = await newUser.save();
 
-    // Send verification email
-
-    const token = jwt.sign({ userId: userData._id }, process.env.JWT_SECRET, {
-      expiresIn: "10h",
-    });
+    // Generate tokens
+    const accessToken = generateToken(
+      userData._id,
+      process.env.JWT_SECRET,
+      "1d"
+    );
+    const refreshToken = generateToken(
+      userData._id,
+      process.env.JWT_REFRESH_SECRET,
+      "7d"
+    );
 
     res.status(201).json({
       status: "success",
-      message: "Verification email sent",
-      token: token,
+      message: "User registered successfully. Verification email sent.",
+      accessToken,
+      refreshToken,
     });
   } catch (error) {
     console.error("Error in userRegistration:", error);
@@ -241,26 +256,32 @@ async function userRegistration(req, res) {
 async function userLogin(req, res) {
   try {
     const { email, password } = req.body;
+
+    // Validate required fields
     if (!email || !password) {
       return res
         .status(400)
         .json({ status: "failed", message: "All fields are required" });
     }
 
-    const user = await User.findOne({ email: email });
+    // Find the user by email
+    const user = await User.findOne({ email });
     if (!user) {
       return res
         .status(404)
         .json({ status: "failed", message: "You are not registered" });
     }
+
+    // Check if the account is disabled
     if (user.isDisable) {
-      return res.status(403).json({ 
-        status: "failed", 
-        message: "Access denied. Your account has been disabled. Please contact support for further assistance." 
+      return res.status(403).json({
+        status: "failed",
+        message:
+          "Access denied. Your account has been disabled. Please contact support for further assistance.",
       });
     }
-    
 
+    // Verify the password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res
@@ -268,23 +289,35 @@ async function userLogin(req, res) {
         .json({ status: "failed", message: "Invalid email or password" });
     }
 
+    // Check if the email is verified
     if (!user.isVerified) {
       return res
         .status(401)
-        .json({ status: "failed", message: "First verify email" });
+        .json({ status: "failed", message: "Please verify your email first" });
     }
 
-    // Generate JWT token without expiration time
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+    // Generate tokens
+    const accessToken = generateToken(user._id, process.env.JWT_SECRET, "1d");
+    const refreshToken = generateToken(
+      user._id,
+      process.env.JWT_REFRESH_SECRET,
+      "7d"
+    );
 
     res.status(200).json({
       status: "success",
-      message: "Login Successfully",
-      token: token,
-      user: user,
+      message: "Login successful",
+      accessToken,
+      refreshToken,
+      user: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        isVerified: user.isVerified,
+      },
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error in userLogin:", error);
     res.status(500).json({ status: "failed", message: "Unable to login" });
   }
 }
@@ -336,7 +369,34 @@ async function forgotPassword(req, res) {
       .json({ status: "failed", message: "Unable to process request" });
   }
 }
+async function refreshAccessToken(req, res) {
+  try {
+    const refreshToken = req.body.refreshToken; // Assume token in httpOnly cookie
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Refresh token missing" });
+    }
 
+    // Verify refresh token
+    jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET, (err, payload) => {
+      if (err)
+        return res.status(403).json({ message: "Invalid refresh token" });
+
+      // Generate a new access token
+      const accessToken = jwt.sign(
+        { userId: payload.userId },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: "1d",
+        }
+      );
+
+      res.status(200).json({ accessToken });
+    });
+  } catch (error) {
+    console.error("Error refreshing token:", error);
+    res.status(500).json({ message: "Failed to refresh token" });
+  }
+}
 async function userPasswordReset(req, res) {
   const { password, password_confirmation } = req.body;
   const { id, token } = req.params;
@@ -454,12 +514,12 @@ async function userIsDisable(req, res) {
         .status(404)
         .json({ status: "failed", message: "User not present" });
     }
-   console.log(req.body.isDisable)
+    console.log(req.body.isDisable);
     // Check if isDisable is provided in the request body
     if (req.body.hasOwnProperty("isDisable")) {
       user.isDisable = req.body.isDisable;
     } else {
-      user.isDisable = user.isDisable !== undefined ? user.isDisable : false; 
+      user.isDisable = user.isDisable !== undefined ? user.isDisable : false;
     }
 
     await user.save(); // Save the updated user
@@ -644,6 +704,7 @@ async function deleteBook(req, res) {
 }
 
 module.exports = {
+  refreshAccessToken,
   userRegistration,
   userLogin,
   verifyMail,
