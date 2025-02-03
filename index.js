@@ -55,7 +55,7 @@ mongoose
   })
   .then(() => {
     console.log("Connected to MongoDB");
-    const port = 8080;
+    const port = 8000;
     app.listen(port, () => {
       console.log(`Server is running on port ${port}`);
     });
