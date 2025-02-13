@@ -11,7 +11,7 @@ passport.use(
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL:
-        "https://projectdev2114.azurewebsites.net/api/user/google/callback", // Use your actual redirect URL
+        "https://projectdev2114-b3fjhscffzh5hnb0.canadacentral-01.azurewebsites.net/api/user/google/callback", // Use your actual redirect URL
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
