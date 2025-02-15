@@ -191,6 +191,51 @@ const uploadBooks = async (req, res) => {
     }
   }
 };
+async function googleAuth(req, res) {
+  try {
+    const { profile } = req.body;
+    console.log(profile);
+    if (!profile?.email) {
+      return res
+        .status(400)
+        .json({ status: "failed", message: "Email is required" });
+    }
+
+    let user = await User.findOne({ email: profile.email });
+   console.log(user)
+    if (!user) {
+      user = new User({
+        googleId: profile.id,
+        username: profile.givenName,
+        email: profile.email,
+        avatar: profile.photo || "",
+      });
+      await user.save();
+    }
+    const accessToken = generateToken(
+      user._id,
+      process.env.JWT_SECRET,
+      "1d"
+    );
+    const refreshToken = generateToken(
+      user._id,
+      process.env.JWT_REFRESH_SECRET,
+      "7d"
+    );
+    res.status(200).json({
+      message: "Login successfully",
+      status: true,
+      accessToken,
+      refreshToken,
+      user: user,
+    });
+  } catch (error) {
+    console.log("Error in googleAuth:", error);
+    res
+      .status(500)
+      .json({ status: "failed", message: "Unable to Google Auth" });
+  }
+}
 
 async function userRegistration(req, res) {
   const { username, email, password, isVerified } = req.body;
@@ -717,6 +762,7 @@ module.exports = {
   askChatBot,
   uploadBooks,
   deleteBook,
-  userData,
+  googleAuth,
   userIsDisable,
+  userData,
 };
