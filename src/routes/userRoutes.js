@@ -6,7 +6,8 @@ const upload = multer({ storage: storage });
 const UserController = require("../controllers/userController.js");
 const authMiddleware = require("../middleware/jwt_authMiddleware.js");
 const passport = require("passport");
-
+const jwt = require("jsonwebtoken");
+const { generateToken } = require("../utils/sevices.js");
 /**
  * @swagger
  * /user/register:
@@ -269,6 +270,7 @@ router.post("/ask", upload.single("pdf"), UserController.askChatBot);
  *       200:
  *         description: Book uploaded successfully
  */
+router.post("/refresh", UserController.refreshAccessToken);
 router.post("/upload", upload.single("pdf"), UserController.uploadBooks);
 
 router.get(
@@ -277,26 +279,41 @@ router.get(
 );
 router.post("/googleCreate", UserController.googleAuth);
 
+//admin get data
+router.get("/userData", authMiddleware, UserController.userData);
+router.patch("/userDisable/:id", authMiddleware, UserController.userIsDisable);
+
 router.get(
   "/google/callback",
   passport.authenticate("google", { failureRedirect: "/login" }),
   (req, res) => {
+    console.log(req.user);
     // Successful authentication, redirect to your dashboard or success page
-    res.send({ message: "Login successfuly", status: true });
-    res.redirect("/");
+    const accessToken = generateToken(
+      req.user._id,
+      process.env.JWT_SECRET,
+      "1d"
+    );
+    const refreshToken = generateToken(
+      req.user._id,
+      process.env.JWT_REFRESH_SECRET,
+      "7d"
+    );
+
+    // Send the token back to the frontend
+    res.send(`
+      <script>
+        window.opener.postMessage(${JSON.stringify({
+          message: "Login successfully",
+          status: true,
+          accessToken,
+          refreshToken,
+          user: req.user,
+        })}, '*');
+        window.close();
+      </script>
+    `);
   }
-);
-router.get(
-  "/github",
-  passport.authenticate("github", { scope: ["user:email"] })
 );
 
-router.get(
-  "/oauth2/code/github",
-  passport.authenticate("github", { failureRedirect: "/" }),
-  (req, res) => {
-    res.send({ message: "login successfully", status: true });
-    res.redirect("/");
-  }
-);
 module.exports = router;

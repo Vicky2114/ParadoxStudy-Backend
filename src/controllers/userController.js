@@ -6,12 +6,15 @@ const jwt = require("jsonwebtoken");
 const formidable = require("formidable");
 const fs = require("fs");
 const Books = require("../models/books.model");
+const moongose = require("mongoose");
 
 const {
   sendVerificationMail,
   sendResetPasswordMail,
   sendEmailToAdminVerified,
 } = require("../utils/sendVerificationMail");
+const { default: mongoose } = require("mongoose");
+const { generateToken } = require("../utils/sevices");
 
 async function getChatMaruti(req, res) {
   try {
@@ -24,7 +27,7 @@ async function getChatMaruti(req, res) {
     formData.append("page", page);
     formData.append("limit", limit);
     const response = await axios.post(
-      "https://f955c179-bacd-41d6-8b82-a3e8b03f9219.deepnoteproject.com/getChats",
+      "http://4.240.83.113:8080/getChats",
       formData
     );
 
@@ -50,7 +53,7 @@ const getPdfData = async (req, res) => {
     const formData = new FormData();
     formData.append("userId", userId);
     const response = await axios.post(
-      "https://f955c179-bacd-41d6-8b82-a3e8b03f9219.deepnoteproject.com/getAllData",
+      "http://4.240.83.113:8080/getAllData",
       formData
       // { headers: formData.getHeaders() } // Include multipart/form-data headers
     );
@@ -74,7 +77,7 @@ const askChatBot = async (req, res) => {
     formData.append("question", question);
     formData.append("selected_book", selected_book);
     const response = await axios.post(
-      "https://f955c179-bacd-41d6-8b82-a3e8b03f9219.deepnoteproject.com/ask",
+      "http://4.240.83.113:8080/ask",
       formData
       // { headers: formData.getHeaders() } // Include multipart/form-data headers
     );
@@ -114,7 +117,7 @@ const uploadBooks = async (req, res) => {
 
     // Make further API call using Axios
     const axiosResponse = await axios.post(
-      "https://f955c179-bacd-41d6-8b82-a3e8b03f9219.deepnoteproject.com/upload",
+      "http://4.240.83.113:8080/upload",
       formData
       // { headers: formData.getHeaders() }
     );
@@ -191,28 +194,43 @@ const uploadBooks = async (req, res) => {
 async function googleAuth(req, res) {
   try {
     const { profile } = req.body;
-
-    if (!profile?.emails?.[0]?.value) {
+    console.log(profile);
+    if (!profile?.email) {
       return res
         .status(400)
         .json({ status: "failed", message: "Email is required" });
     }
 
-    let user = await User.findOne({ email: profile.emails[0].value });
-
+    let user = await User.findOne({ email: profile.email });
+   console.log(user)
     if (!user) {
       user = new User({
         googleId: profile.id,
-        username: profile.displayName,
-        email: profile.emails[0].value,
-        avatar: profile.photos?.[0]?.value || "",
+        username: profile.givenName,
+        email: profile.email,
+        avatar: profile.photo || "",
       });
       await user.save();
     }
-
-    res.status(200).json({ status: "success", user });
+    const accessToken = generateToken(
+      user._id,
+      process.env.JWT_SECRET,
+      "1d"
+    );
+    const refreshToken = generateToken(
+      user._id,
+      process.env.JWT_REFRESH_SECRET,
+      "7d"
+    );
+    res.status(200).json({
+      message: "Login successfully",
+      status: true,
+      accessToken,
+      refreshToken,
+      user: user,
+    });
   } catch (error) {
-    console.error("Error in googleAuth:", error);
+    console.log("Error in googleAuth:", error);
     res
       .status(500)
       .json({ status: "failed", message: "Unable to Google Auth" });
@@ -223,42 +241,56 @@ async function userRegistration(req, res) {
   const { username, email, password, isVerified } = req.body;
   console.log(req.body);
   try {
+    // Validate required fields
     if (!username || !email || !password) {
       return res
         .status(400)
         .json({ status: "failed", message: "All fields are required" });
     }
 
-    const existingUser = await User.findOne({ email: email });
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res
         .status(409)
         .json({ status: "failed", message: "Email already exists" });
     }
 
+    // Hash the password
     const salt = await bcrypt.genSalt(10);
     const hashPassword = await bcrypt.hash(password, salt);
 
+    // Create a new user
     const newUser = new User({
-      username: username,
-      email: email,
+      username,
+      email,
       password: hashPassword,
       isVerified: isVerified ?? false,
     });
+
+    // Send emails for admin and verification
     await sendEmailToAdminVerified(username, email, newUser._id);
     await sendVerificationMail(username, email, newUser._id);
+
     const userData = await newUser.save();
 
-    // Send verification email
-
-    const token = jwt.sign({ userId: userData._id }, process.env.JWT_SECRET, {
-      expiresIn: "10h",
-    });
+    // Generate tokens
+    const accessToken = generateToken(
+      userData._id,
+      process.env.JWT_SECRET,
+      "1d"
+    );
+    const refreshToken = generateToken(
+      userData._id,
+      process.env.JWT_REFRESH_SECRET,
+      "7d"
+    );
 
     res.status(201).json({
       status: "success",
-      message: "Verification email sent",
-      token: token,
+      message: "User registered successfully. Verification email sent.",
+      accessToken,
+      refreshToken,
     });
   } catch (error) {
     console.error("Error in userRegistration:", error);
@@ -269,19 +301,32 @@ async function userRegistration(req, res) {
 async function userLogin(req, res) {
   try {
     const { email, password } = req.body;
+
+    // Validate required fields
     if (!email || !password) {
       return res
         .status(400)
         .json({ status: "failed", message: "All fields are required" });
     }
 
-    const user = await User.findOne({ email: email });
+    // Find the user by email
+    const user = await User.findOne({ email });
     if (!user) {
       return res
         .status(404)
         .json({ status: "failed", message: "You are not registered" });
     }
 
+    // Check if the account is disabled
+    if (user.isDisable) {
+      return res.status(403).json({
+        status: "failed",
+        message:
+          "Access denied. Your account has been disabled. Please contact support for further assistance.",
+      });
+    }
+
+    // Verify the password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res
@@ -289,23 +334,35 @@ async function userLogin(req, res) {
         .json({ status: "failed", message: "Invalid email or password" });
     }
 
+    // Check if the email is verified
     if (!user.isVerified) {
       return res
         .status(401)
-        .json({ status: "failed", message: "First verify email" });
+        .json({ status: "failed", message: "Please verify your email first" });
     }
 
-    // Generate JWT token without expiration time
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+    // Generate tokens
+    const accessToken = generateToken(user._id, process.env.JWT_SECRET, "1d");
+    const refreshToken = generateToken(
+      user._id,
+      process.env.JWT_REFRESH_SECRET,
+      "7d"
+    );
 
     res.status(200).json({
       status: "success",
-      message: "Login Successfully",
-      token: token,
-      user: user,
+      message: "Login successful",
+      accessToken,
+      refreshToken,
+      user: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        isVerified: user.isVerified,
+      },
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error in userLogin:", error);
     res.status(500).json({ status: "failed", message: "Unable to login" });
   }
 }
@@ -357,7 +414,34 @@ async function forgotPassword(req, res) {
       .json({ status: "failed", message: "Unable to process request" });
   }
 }
+async function refreshAccessToken(req, res) {
+  try {
+    const refreshToken = req.body.refreshToken; // Assume token in httpOnly cookie
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Refresh token missing" });
+    }
 
+    // Verify refresh token
+    jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET, (err, payload) => {
+      if (err)
+        return res.status(403).json({ message: "Invalid refresh token" });
+
+      // Generate a new access token
+      const accessToken = jwt.sign(
+        { userId: payload.userId },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: "1d",
+        }
+      );
+
+      res.status(200).json({ accessToken });
+    });
+  } catch (error) {
+    console.error("Error refreshing token:", error);
+    res.status(500).json({ message: "Failed to refresh token" });
+  }
+}
 async function userPasswordReset(req, res) {
   const { password, password_confirmation } = req.body;
   const { id, token } = req.params;
@@ -463,6 +547,125 @@ async function userById(req, res) {
       .json({ status: "failed", message: "Unable to process request" });
   }
 }
+async function userIsDisable(req, res) {
+  try {
+    const userId = req.params.id; // Extract the user ID from params
+    const ObjectId = new mongoose.Types.ObjectId(userId); // Ensure it's an ObjectId
+
+    // Find the user by ID
+    const user = await User.findById(ObjectId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ status: "failed", message: "User not present" });
+    }
+    console.log(req.body.isDisable);
+    // Check if isDisable is provided in the request body
+    if (req.body.hasOwnProperty("isDisable")) {
+      user.isDisable = req.body.isDisable;
+    } else {
+      user.isDisable = user.isDisable !== undefined ? user.isDisable : false;
+    }
+
+    await user.save(); // Save the updated user
+
+    res.status(200).json({
+      status: "success",
+      data: user,
+    });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ status: "failed", message: "Unable to process request" });
+  }
+}
+
+async function userData(req, res) {
+  try {
+    const userId = req.userId;
+    const { page = 1, limit = 10 } = req.query;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ status: "failed", message: "User not present" });
+    }
+    if (user?.isAdmin === false) {
+      return res
+        .status(401)
+        .json({ status: "failed", message: "Not Authorized for User" });
+    }
+
+    const skip = (page - 1) * limit;
+
+    // Get the total number of users first
+    const totalRecords = await User.countDocuments();
+
+    // Fetch the paginated users
+    const result = await User.aggregate([
+      {
+        $addFields: {
+          stringUserId: { $toString: "$_id" },
+        },
+      },
+      {
+        $lookup: {
+          from: "chatbot",
+          localField: "stringUserId",
+          foreignField: "userId",
+          as: "chatbotData",
+        },
+      },
+      {
+        $addFields: {
+          bookCount: { $size: "$chatbotData" },
+        },
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+      {
+        $skip: skip,
+      },
+      {
+        $limit: parseInt(limit),
+      },
+      {
+        $project: {
+          _id: 1,
+          username: 1,
+          email: 1,
+          isVerified: 1,
+          isAdmin: 1,
+          institution: 1,
+          avatar: 1,
+          bookCount: 1,
+          isDisable: 1,
+        },
+      },
+    ]);
+
+    // Calculate total pages
+    const totalPages = Math.ceil(totalRecords / limit);
+
+    res.status(200).json({
+      status: "success",
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total: totalRecords, // total number of records
+      totalPages: totalPages, // total pages
+      data: result,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      status: "failed",
+      message: "Unable to process request",
+    });
+  }
+}
 
 async function deleteBook(req, res) {
   try {
@@ -476,7 +679,7 @@ async function deleteBook(req, res) {
 
     const axiosResponse = await axios({
       method: "delete",
-      url: "https://f955c179-bacd-41d6-8b82-a3e8b03f9219.deepnoteproject.com/delete",
+      url: "http://4.240.83.113:8080/delete",
       data: formData,
       headers: { "Content-Type": "multipart/form-data" }, // Include multipart/form-data headers
     });
@@ -546,6 +749,7 @@ async function deleteBook(req, res) {
 }
 
 module.exports = {
+  refreshAccessToken,
   userRegistration,
   userLogin,
   verifyMail,
@@ -558,5 +762,7 @@ module.exports = {
   askChatBot,
   uploadBooks,
   deleteBook,
-  googleAuth
+  googleAuth,
+  userIsDisable,
+  userData,
 };

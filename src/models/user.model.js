@@ -6,13 +6,12 @@ const upload = multer({ storage: storage });
 
 const userSchema = new mongoose.Schema(
   {
-    googleId:{
+    googleId: {
       type: String,
     },
     username: {
       type: String,
       required: true,
-      unique: true,
     },
     email: {
       type: String,
@@ -59,12 +58,20 @@ const userSchema = new mongoose.Schema(
     gender: {
       type: String,
     },
-    branch:{
-      type:String,
+    branch: {
+      type: String,
     },
-    countBooks:{
-      type:Number,
-    }
+    countBooks: {
+      type: Number,
+    },
+    isAdmin: {
+      type: Boolean,
+      default: false,
+    },
+    isDisable: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
