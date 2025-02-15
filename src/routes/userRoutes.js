@@ -277,6 +277,7 @@ router.get(
   "/google",
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
+router.post("/googleCreate", UserController.googleAuth);
 
 //admin get data
 router.get("/userData", authMiddleware, UserController.userData);
