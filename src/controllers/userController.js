@@ -10,6 +10,7 @@ const Books = require("../models/books.model");
 const {
   sendVerificationMail,
   sendResetPasswordMail,
+  sendEmailToAdminVerified,
 } = require("../utils/sendVerificationMail");
 
 async function getChatMaruti(req, res) {
@@ -23,7 +24,7 @@ async function getChatMaruti(req, res) {
     formData.append("page", page);
     formData.append("limit", limit);
     const response = await axios.post(
-      "http://172.190.120.7:8000/getChats",
+      "https://f955c179-bacd-41d6-8b82-a3e8b03f9219.deepnoteproject.com/getChats",
       formData
     );
 
@@ -49,7 +50,7 @@ const getPdfData = async (req, res) => {
     const formData = new FormData();
     formData.append("userId", userId);
     const response = await axios.post(
-      "http://172.190.120.7:8000/getAllData",
+      "https://f955c179-bacd-41d6-8b82-a3e8b03f9219.deepnoteproject.com/getAllData",
       formData
       // { headers: formData.getHeaders() } // Include multipart/form-data headers
     );
@@ -73,7 +74,7 @@ const askChatBot = async (req, res) => {
     formData.append("question", question);
     formData.append("selected_book", selected_book);
     const response = await axios.post(
-      "http://172.190.120.7:8000/ask",
+      "https://f955c179-bacd-41d6-8b82-a3e8b03f9219.deepnoteproject.com/ask",
       formData
       // { headers: formData.getHeaders() } // Include multipart/form-data headers
     );
@@ -113,7 +114,7 @@ const uploadBooks = async (req, res) => {
 
     // Make further API call using Axios
     const axiosResponse = await axios.post(
-      "http://172.190.120.7:8000/upload",
+      "https://f955c179-bacd-41d6-8b82-a3e8b03f9219.deepnoteproject.com/upload",
       formData
       // { headers: formData.getHeaders() }
     );
@@ -187,6 +188,36 @@ const uploadBooks = async (req, res) => {
     }
   }
 };
+async function googleAuth(req, res) {
+  try {
+    const { profile } = req.body;
+
+    if (!profile?.emails?.[0]?.value) {
+      return res
+        .status(400)
+        .json({ status: "failed", message: "Email is required" });
+    }
+
+    let user = await User.findOne({ email: profile.emails[0].value });
+
+    if (!user) {
+      user = new User({
+        googleId: profile.id,
+        username: profile.displayName,
+        email: profile.emails[0].value,
+        avatar: profile.photos?.[0]?.value || "",
+      });
+      await user.save();
+    }
+
+    res.status(200).json({ status: "success", user });
+  } catch (error) {
+    console.error("Error in googleAuth:", error);
+    res
+      .status(500)
+      .json({ status: "failed", message: "Unable to Google Auth" });
+  }
+}
 
 async function userRegistration(req, res) {
   const { username, email, password, isVerified } = req.body;
@@ -214,6 +245,7 @@ async function userRegistration(req, res) {
       password: hashPassword,
       isVerified: isVerified ?? false,
     });
+    await sendEmailToAdminVerified(username, email, newUser._id);
     await sendVerificationMail(username, email, newUser._id);
     const userData = await newUser.save();
 
@@ -444,7 +476,7 @@ async function deleteBook(req, res) {
 
     const axiosResponse = await axios({
       method: "delete",
-      url: "http://172.190.120.7:8000/delete",
+      url: "https://f955c179-bacd-41d6-8b82-a3e8b03f9219.deepnoteproject.com/delete",
       data: formData,
       headers: { "Content-Type": "multipart/form-data" }, // Include multipart/form-data headers
     });
@@ -526,4 +558,5 @@ module.exports = {
   askChatBot,
   uploadBooks,
   deleteBook,
+  googleAuth
 };

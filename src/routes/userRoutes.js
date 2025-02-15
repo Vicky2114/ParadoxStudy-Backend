@@ -271,15 +271,32 @@ router.post("/ask", upload.single("pdf"), UserController.askChatBot);
  */
 router.post("/upload", upload.single("pdf"), UserController.uploadBooks);
 
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+router.post("/googleCreate", UserController.googleAuth);
 
-router.get('/google/callback', 
-  passport.authenticate('google', { failureRedirect: '/login' }),
+router.get(
+  "/google/callback",
+  passport.authenticate("google", { failureRedirect: "/login" }),
   (req, res) => {
     // Successful authentication, redirect to your dashboard or success page
-    res.send({message:"Login successfuly" , status :true})
+    res.send({ message: "Login successfuly", status: true });
+    res.redirect("/");
   }
 );
+router.get(
+  "/github",
+  passport.authenticate("github", { scope: ["user:email"] })
+);
 
-
+router.get(
+  "/oauth2/code/github",
+  passport.authenticate("github", { failureRedirect: "/" }),
+  (req, res) => {
+    res.send({ message: "login successfully", status: true });
+    res.redirect("/");
+  }
+);
 module.exports = router;
